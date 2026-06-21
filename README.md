@@ -2,8 +2,6 @@
 
 An interactive web application built with **Python Flask** and **Vanilla HTML, CSS, and JavaScript** that fetches the official Google Cloud BigQuery Release notes, segments them into granular items, and lets you search, filter, and Tweet about them.
 
-![BigQuery Release Explorer Banner](https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1200&q=80)
-
 ---
 
 ## ✨ Features
@@ -43,7 +41,7 @@ Ensure you have **Python 3.8+** installed on your system.
 
 ### 2. Clone/Navigate to folder
 ```bash
-cd /Users/rathish/Projects/agy2-cli-projects/bq-releases-notes
+cd bq-releases-notes
 ```
 
 ### 3. Create & Activate Virtual Environment
