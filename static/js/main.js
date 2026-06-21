@@ -8,6 +8,7 @@ let selectedUpdateForTweet = null;
 // DOM Elements
 const refreshBtn = document.getElementById('refresh-btn');
 const refreshIcon = document.getElementById('refresh-icon');
+const exportCsvBtn = document.getElementById('export-csv-btn');
 const searchInput = document.getElementById('search-input');
 const clearSearchBtn = document.getElementById('clear-search-btn');
 const notesContainer = document.getElementById('notes-container');
@@ -253,6 +254,12 @@ function renderUpdatesGrid() {
             </div>
             
             <div class="note-actions">
+                <button class="btn-action btn-copy-text" title="Copy Text to Clipboard" data-id="${update.id}">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
                 <button class="btn-action btn-copy-link" title="Copy Direct Link" data-link="${update.link}">
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
@@ -279,6 +286,22 @@ function renderUpdatesGrid() {
     });
     
     // Add Event Listeners for action buttons dynamically
+    notesContainer.querySelectorAll('.btn-copy-text').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const updateId = btn.getAttribute('data-id');
+            const update = allUpdates.find(u => u.id === updateId);
+            if (update) {
+                const textToCopy = `BigQuery Release Note [${update.type}] (${update.date}):\n\n${update.text}\n\nLink: ${update.link}`;
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    showToast('Update text copied to clipboard!', 'success');
+                }).catch(err => {
+                    showToast('Failed to copy text', 'error');
+                });
+            }
+        });
+    });
+
     notesContainer.querySelectorAll('.btn-copy-link').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -366,8 +389,61 @@ function updateCharCount() {
     submitTweetBtn.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
 }
 
+function escapeCSV(text) {
+    if (text === null || text === undefined) return '';
+    return text.toString().replace(/"/g, '""');
+}
+
+function exportToCSV() {
+    if (filteredUpdates.length === 0) {
+        showToast('No release notes available to export.', 'warning');
+        return;
+    }
+    
+    const headers = ['Date', 'Type', 'Description', 'Link'];
+    const rows = filteredUpdates.map(update => [
+        update.date,
+        update.type,
+        update.text,
+        update.link
+    ]);
+    
+    let csvContent = headers.map(h => `"${escapeCSV(h)}"`).join(',') + '\n';
+    
+    rows.forEach(row => {
+        csvContent += row.map(cell => `"${escapeCSV(cell)}"`).join(',') + '\n';
+    });
+    
+    try {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0].replace(/-/g, '_');
+        const filename = `bigquery_release_notes_${dateStr}.csv`;
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast(`Exported ${filteredUpdates.length} updates to CSV!`, 'success');
+    } catch (error) {
+        console.error('CSV export failed:', error);
+        showToast('Failed to export CSV', 'error');
+    }
+}
+
 // Event Listeners Registration
 function registerEventListeners() {
+    // Export CSV Button Click
+    exportCsvBtn.addEventListener('click', () => {
+        exportToCSV();
+    });
+
     // Refresh Button Click
     refreshBtn.addEventListener('click', () => {
         fetchReleaseNotes(true);
